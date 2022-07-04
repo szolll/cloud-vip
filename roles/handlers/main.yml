@@ -1,0 +1,6 @@
+---
+- name: restart keepalived
+  command: "systemctl restart {{ keepalived_service_name }}"
+
+- name: reload keepalived
+  command: "systemctl reload {{ keepalived_service_name }}"

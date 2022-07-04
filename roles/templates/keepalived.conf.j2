@@ -1,0 +1,77 @@
+# {{ ansible_managed }}
+#
+#
+# My Default state is {{ keepalived_set_master  }}
+state {{ keepalived_set_master }}
+priority {{ keepalived_prio_master }}
+
+vrrp_script chk_haproxy {
+    # User script for any service  or any other check for running applications
+    #
+    # usage <scriptname + service> example # check-keepalived.sh sshd
+    script  '{{ /usr/local/bin/ }}{{ keepalived_script_name }}{{ keepalived_extra_service_check }}'
+    interval {{ keepaliveed_script_interval }}
+}
+
+global_defs {
+   # The email addresses the notification of the changes will be sent to
+   notification_email {  # operations@copernica.com
+     {{ email_us_at }}
+   }
+
+   # The from address in the notification emails
+   notification_email_from {{ ansible_hostname }}
+
+   # The smtp server to use
+   smtp_server {{ keepalived_smtp_server }}
+
+   # the smtp connect timeout
+   smtp_connect_timeout {{ smtp_connect_timeout  }}
+
+   # The name of the setup
+   router_id {{ keepalived_router_id }}
+}
+
+vrrp_instance {{ keepalived_vrrp_instance }} {
+    interface bond-dedicated         				 # Binding interface
+    {{ keepalived_garp_master_delay }}				 # Delay for gratuitous ARP after MASTER state transition
+    smtp_alert                       				 # Send email notify during state transit
+    virtual_router_id {{ keepalived_virtual_router_id }}	 # VRRP VRI
+    advert_int {{ keepalived_advert_inter }}                     # advertise activity every second
+
+    # Used for the authentication of the vrrp packages
+    authentication {
+         auth_type {{ keepalived_vrrp_auth }}
+         auth_pass {{ keepalived_vrrp_pass }}
+
+    }
+
+    # All the virtual IP addresses
+    virtual_ipaddress {
+        10.32.57.150                 dev bond-dedicated  #
+	172.16.128.10		     dev bond-colocation  #
+    }
+
+    #for ipv6
+    #virtual_ipaddress_excluded {
+    #    2a03:e280:0:1::129:193/64   dev eth0   # wstemp.copernica.nl
+    #}
+
+    # monitor these as well.
+    # go to FAULT state if any of these go down.
+    track_interface {
+        bond-dedicated
+	bond-colocation
+    }
+	
+    track_script{
+	chk_haproxy
+    }
+
+    # store the currently active state for later retrieval
+    # This we need if we are enabeling smcrout/multicasting
+
+    notify_backup "/bin/echo backup > /etc/keepalived/state"
+    notify_fault  "/bin/echo fault  > /etc/keepalived/state"
+}
+

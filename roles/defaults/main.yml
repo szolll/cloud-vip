@@ -1,0 +1,5 @@
+# defaults file for ansible-router
+#ansible_managed = Ansible managed: {file} modified on %Y-%m-%d %H:%M:%S by {uid} on {host}
+# This short version is better used in templates as it won't flag the file as changed every run.
+ansible_managed = Ansible managed: {file} on {host]
+
